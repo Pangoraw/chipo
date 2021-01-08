@@ -1,7 +1,6 @@
 extern crate sdl2;
 
 use sdl2::pixels::Color;
-use sdl2::rect::Rect;
 use sdl2::render::WindowCanvas;
 use sdl2::{AudioSubsystem, EventPump};
 
@@ -31,16 +30,6 @@ pub fn clear(canvas: &mut WindowCanvas) {
     canvas.set_draw_color(foreground_color());
 }
 
-pub fn present(canvas: &mut WindowCanvas) {
-    //canvas.clear();
-    canvas.present();
-}
-
-pub fn fill_rects(canvas: &mut WindowCanvas, rects: Vec<Rect>) -> Result<(), String> {
-    canvas.fill_rects(&rects)?;
-    Ok(())
-}
-
 fn foreground_color() -> Color {
     Color::RGB(38, 84, 124)
 }
@@ -48,4 +37,3 @@ fn foreground_color() -> Color {
 fn background_color() -> Color {
     Color::RGB(252, 252, 252)
 }
-
