@@ -19,23 +19,23 @@ struct Opt {
 }
 
 fn read_from_file(file: &PathBuf) -> Result<Vec<u8>> {
-    match file.extension().map(|ext| ext.to_str()) {
-        Some(Some("s")) => {
+    match file.extension().and_then(std::ffi::OsStr::to_str) {
+        Some("s") => {
             let asm = read_to_string(file)?;
             compile(asm)
         }
-        Some(Some("c8")) => read(file).map_err(|err| ChipoError::IOError(err)),
+        Some("c8") | Some("ch8") => read(file).map_err(|err| ChipoError::IOError(err)),
         _ => Err(ChipoError::InvalidFile(file.to_str().unwrap().to_string())),
     }
 }
 
 fn write_to_file(file: &PathBuf, tokens: &[u8]) -> Result<()> {
-    match file.extension().map(|ext| ext.to_str()) {
-        Some(Some("s")) => {
+    match file.extension().and_then(std::ffi::OsStr::to_str) {
+        Some("s") => {
             let instructions = reverse_parse(tokens)?;
             write(file, instructions)?;
         }
-        Some(Some("c8")) => {
+        Some("c8") | Some("ch8") => {
             write(file, tokens)?;
         }
         _ => {

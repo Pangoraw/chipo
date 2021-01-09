@@ -60,7 +60,6 @@ pub fn run(blob: &[u8]) -> Result<()> {
     let mut proc = Proc::binary(blob)?;
 
     let mut last_update = Instant::now();
-    let delta_time = Duration::from_millis(16);
     'running: loop {
         screen::clear(&mut canvas);
 
@@ -71,17 +70,19 @@ pub fn run(blob: &[u8]) -> Result<()> {
                 return Err(err);
             }
         }
-        audio_manager.set(proc.should_buzz());
 
+        audio_manager.set(proc.should_buzz());
         let now = Instant::now();
-        let time_to_wait = delta_time.checked_sub(now - last_update);
-        if time_to_wait.is_none() {
-            if proc.should_render {
-                canvas.fill_rects(&proc.to_rects()).unwrap();
-                canvas.present();
+        let time_since_last = now.checked_duration_since(last_update);
+        if let Some(elapsed) = time_since_last {
+            if elapsed > Duration::from_millis(10) {
+                last_update = now;
+                proc.decrement_registers();
+                if proc.should_render {
+                    canvas.fill_rects(&proc.to_rects()).unwrap();
+                    canvas.present();
+                }
             }
-            last_update = Instant::now();
-            proc.decrement_registers();
         }
 
         match event_pump.poll_event() {

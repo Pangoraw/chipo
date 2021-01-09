@@ -60,7 +60,7 @@ impl Instruction {
             0x5000 => Ok(IfEqRg(as_vx(instr), as_vy(instr))),
             0x6000 => Ok(Set(as_vx(instr), as_val(instr))),
             0x7000 => Ok(Add(as_vx(instr), as_val(instr))),
-            0x8000 => match instr & 0x0001 {
+            0x8000 => match instr & 0x000F {
                 0 => Ok(SetRg(as_vx(instr), as_vy(instr))),
                 1 => Ok(Or(as_vx(instr), as_vy(instr))),
                 2 => Ok(And(as_vx(instr), as_vy(instr))),

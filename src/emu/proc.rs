@@ -7,6 +7,7 @@ use sdl2::rect::Rect;
 use crate::emu::{Addr, Instruction, Instruction::*, Val};
 use crate::error::{ChipoError, Result};
 
+#[derive(Debug)]
 pub struct Proc {
     memory: [Val; 4096],
     rg: [Val; 16],
@@ -86,7 +87,7 @@ impl Proc {
             }
             Call(addr) => {
                 self.stack.push(self.pc as Addr);
-                self.pc = addr as usize + 2;
+                self.pc = addr as usize;
             }
             GoTo(addr) => {
                 self.pc = addr as usize;
@@ -183,16 +184,15 @@ impl Proc {
             Disp(vx, vy, n) => {
                 self.rg[0xF] = 0x00;
                 for y in 0..n {
-                    let mut spr = self.memory[self.i as usize + y as usize];
+                    let spr = self.memory[self.i as usize + y as usize];
                     for x in 0..8 {
                         if self.set_pixel(
                             (self.rg[vx].wrapping_add(x)) as usize,
                             (self.rg[vy].wrapping_add(y)) as usize,
-                            (spr & 0x80) >> 7,
+                            spr >> (7 - x) & 0x01,
                         ) {
                             self.rg[0xF] = 0x1;
                         }
-                        spr <<= 1;
                     }
                 }
                 self.pc += 2;
@@ -216,13 +216,13 @@ impl Proc {
                 self.pc += 2;
             }
             MemDump(vx) => {
-                for reg in 0..vx {
+                for reg in 0..(vx + 1) {
                     self.memory[self.i as usize + reg] = self.rg[reg];
                 }
                 self.pc += 2;
             }
             MemLoad(vx) => {
-                for reg in 0..vx {
+                for reg in 0..(vx + 1) {
                     self.rg[reg] = self.memory[self.i as usize + reg];
                 }
                 self.pc += 2;
@@ -321,7 +321,7 @@ impl Proc {
         self.pixels
             .iter()
             .enumerate()
-            .map(|(pos, &b)| {
+            .filter_map(|(pos, &b)| {
                 if b == 0x01 {
                     Some(Rect::new(
                         (pos % 64) as i32 * SCALE,
@@ -333,8 +333,6 @@ impl Proc {
                     None
                 }
             })
-            .filter(|opt| opt.is_some())
-            .flatten()
             .collect::<Vec<Rect>>()
     }
 }
