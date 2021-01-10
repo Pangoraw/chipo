@@ -26,7 +26,7 @@ pub fn compile(asm: String) -> Result<Vec<u8>> {
     Ok(parse(&asm)?
         .iter()
         .map(|inst| inst.to_bin())
-        .flat_map(|b| vec![(b >> 8) as u8 & 0xff, b as u8 & 0xff].into_iter())
+        .flat_map(|b| vec![(b >> 8) as u8, b as u8].into_iter())
         .collect::<Vec<u8>>())
 }
 

@@ -102,7 +102,7 @@ impl Instruction {
         use Instruction::*;
         match self {
             Raw(val) => *val,
-            CallPrg(addr) => ((0x0 << 12) + *addr as u16),
+            CallPrg(addr) => *addr as u16,
             DisplayClear => 0x00E0,
             Return => 0x00EE,
             GoTo(addr) => ((0x1 << 12) + *addr as u16),
@@ -219,7 +219,10 @@ mod tests {
 
     #[test]
     fn test_from_bin() {
-        assert_eq!(Instruction::from(0x00E0).unwrap(), Instruction::DisplayClear);
+        assert_eq!(
+            Instruction::from(0x00E0).unwrap(),
+            Instruction::DisplayClear
+        );
     }
 
     #[test]

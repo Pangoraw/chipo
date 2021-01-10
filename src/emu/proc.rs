@@ -135,15 +135,15 @@ impl Proc {
                 self.pc += 2;
             }
             Or(vx, vy) => {
-                self.rg[vx] = self.rg[vx] | self.rg[vy];
+                self.rg[vx] |= self.rg[vy];
                 self.pc += 2;
             }
             And(vx, vy) => {
-                self.rg[vx] = self.rg[vx] & self.rg[vy];
+                self.rg[vx] &= self.rg[vy];
                 self.pc += 2;
             }
             Xor(vx, vy) => {
-                self.rg[vx] = self.rg[vx] ^ self.rg[vy];
+                self.rg[vx] ^= self.rg[vy];
                 self.pc += 2;
             }
             Sub(vx, vy) => {
@@ -316,8 +316,7 @@ impl Proc {
     pub fn should_buzz(&self) -> bool {
         self.sound_rg > 0
     }
-    pub fn to_rects(&mut self) -> Vec<Rect> {
-        self.should_render = false;
+    pub fn to_rects(&self) -> Vec<Rect> {
         self.pixels
             .iter()
             .enumerate()

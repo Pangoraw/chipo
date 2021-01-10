@@ -78,7 +78,7 @@ macro_rules! impl_from_str_radix {
     ($t: ty) => {
         impl FromStrRadix for $t {
             fn from_str_radix(src: &str, radix: u32) -> Result<Self> {
-                <$t>::from_str_radix(src, radix).map_err(|err| ParserError::ParseIntErr(err))
+                <$t>::from_str_radix(src, radix).map_err(ParserError::ParseIntErr)
             }
         }
     };
@@ -92,12 +92,10 @@ fn parse_number<T>(number: &str) -> Result<T>
 where
     T: FromStrRadix + std::str::FromStr<Err = std::num::ParseIntError>,
 {
-    if number.starts_with("0x") {
-        T::from_str_radix(&number[2..], 16)
+    if let Some(slice) = number.strip_prefix("0x") {
+        T::from_str_radix(slice, 16)
     } else {
-        number
-            .parse::<T>()
-            .map_err(|err| ParserError::ParseIntErr(err))
+        number.parse::<T>().map_err(ParserError::ParseIntErr)
     }
 }
 
@@ -113,7 +111,7 @@ impl<'a> Parser<'a> {
         let instr = instruction[split_pos + 1..]
             .trim()
             .split_whitespace()
-            .map(|val| parse_number(val).map(|byte| Instruction::Raw(byte)))
+            .map(|val| parse_number(val).map(Instruction::Raw))
             .collect::<Result<Vec<Instruction>>>()?;
 
         Ok((name, instr))
@@ -147,8 +145,8 @@ impl<'a> Parser<'a> {
         if let Some(location) = address {
             Ok(*location as u32)
         } else {
-            let parse_rel = if symbol.starts_with("0x") {
-                i32::from_str_radix(&symbol[2..], 16)
+            let parse_rel = if let Some(slice) = symbol.strip_prefix("0x") {
+                i32::from_str_radix(slice, 16)
             } else {
                 symbol.parse::<i32>()
             };
@@ -201,7 +199,7 @@ impl<'a> Parser<'a> {
             },
             "se" => {
                 let first_register = parse_register(tokens[1])?;
-                match tokens[2].chars().nth(0) {
+                match tokens[2].chars().next() {
                     Some('v') => Ok(IfEqRg(first_register, parse_register(tokens[2])?)),
                     _ => Ok(IfEq(first_register, parse_number(tokens[2])?)),
                 }
@@ -280,7 +278,7 @@ impl<'a> Parser<'a> {
             .iter()
             .filter(|line| {
                 let trim = line.trim();
-                !trim.ends_with(":") && !trim.is_empty()
+                !trim.ends_with(':') && !trim.is_empty()
             })
             .map(|line| self.parse_instr(line))
             .collect::<Result<Vec<Instruction>>>()
@@ -309,8 +307,8 @@ pub fn parse(program: &str) -> Result<Vec<Instruction>> {
         .enumerate()
         .filter_map(|(i, line)| {
             let trim = line.trim();
-            if trim.starts_with(".") {
-                Some((i, &trim[1..]))
+            if let Some(slice) = trim.strip_prefix('.') {
+                Some((i, slice))
             } else {
                 None
             }
@@ -336,7 +334,7 @@ pub fn parse(program: &str) -> Result<Vec<Instruction>> {
         let data_section_lines = &lines[*data_section_start + 1..code_section_start - 1];
         parser.parse_data(data_section_lines)?
     } else {
-        if code_sections.len() > 0 {
+        if !code_sections.is_empty() {
             return Err(ParserError::UnknownSection(
                 code_sections.keys().next().unwrap().to_string(),
             ));
