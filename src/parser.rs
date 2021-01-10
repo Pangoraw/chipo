@@ -86,6 +86,7 @@ macro_rules! impl_from_str_radix {
 
 impl_from_str_radix!(u8);
 impl_from_str_radix!(u16);
+impl_from_str_radix!(u32);
 
 fn parse_number<T>(number: &str) -> Result<T>
 where
@@ -174,8 +175,7 @@ impl<'a> Parser<'a> {
             )),
             "ld" => match tokens[1] {
                 "i" => {
-                    let try_value = tokens[2].parse::<u32>();
-                    if let Ok(val) = try_value {
+                    if let Ok(val) = parse_number(tokens[2]) {
                         Ok(SetAddr(val))
                     } else {
                         Ok(SetAddr(self.parse_addr(tokens[2])?))

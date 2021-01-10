@@ -336,3 +336,76 @@ impl Proc {
             .collect::<Vec<Rect>>()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::compile;
+
+    fn exec(prg: &str) -> Proc {
+        let binary = compile(prg.to_string()).unwrap();
+        let mut proc = Proc::binary(&binary).unwrap();
+
+        while let Ok(ProgramState::Continue) = proc.cycle() {}
+
+        proc
+    }
+
+    #[test]
+    fn test_add() {
+        let proc = exec(
+            r#"
+.code
+    ld v0 10
+    ld v1 10
+    add v0 v1
+    ret
+            "#,
+        );
+
+        assert_eq!(proc.rg[0], 20);
+    }
+
+    #[test]
+    fn test_and() {
+        let proc = exec(
+            r#"
+.code
+    ld v0 0xFF
+    ld v1 0x0F
+    and v0 v1
+    ret
+            "#,
+        );
+
+        assert_eq!(proc.rg[0], 0x0F);
+    }
+
+    #[test]
+    fn test_or() {
+        let proc = exec(
+            r#"
+.code
+    ld v0 0xF0
+    ld v1 0x0F
+    or v0 v1
+    ret
+            "#,
+        );
+
+        assert_eq!(proc.rg[0], 0xFF);
+    }
+
+    #[test]
+    fn test_set_addr() {
+        let proc = exec(
+            r#"
+.code
+    ld i 0xFFF
+    ret
+            "#,
+        );
+
+        assert_eq!(proc.i, 0xFFF);
+    }
+}
