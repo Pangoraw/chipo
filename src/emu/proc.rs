@@ -17,7 +17,7 @@ pub struct Proc {
     pc: usize,
     stack: Vec<Addr>,
     pub should_render: bool,
-    pixels: [Val; 64 * 32],
+    pixels: [bool; 64 * 32],
     keys: [bool; 16],
 }
 
@@ -55,7 +55,7 @@ impl Proc {
             pc: 0x200,
             stack: vec![],
             should_render: true,
-            pixels: [0x00; 64 * 32],
+            pixels: [false; 64 * 32],
             keys: [false; 16],
         };
         for (pos, &b) in fonts.iter().enumerate() {
@@ -74,7 +74,7 @@ impl Proc {
         match for_instr {
             DisplayClear => {
                 self.pixels.iter_mut().for_each(|pixel| {
-                    *pixel = 0x00;
+                    *pixel = false;
                 });
                 self.pc += 2;
             }
@@ -189,7 +189,7 @@ impl Proc {
                         if self.set_pixel(
                             (self.rg[vx].wrapping_add(x)) as usize,
                             (self.rg[vy].wrapping_add(y)) as usize,
-                            spr >> (7 - x) & 0x01,
+                            (spr >> (7 - x) & 0x01) != 0,
                         ) {
                             self.rg[0xF] = 0x1;
                         }
@@ -275,12 +275,12 @@ impl Proc {
         }
     }
 
-    pub fn set_pixel(&mut self, x: usize, y: usize, val: Val) -> bool {
+    pub fn set_pixel(&mut self, x: usize, y: usize, val: bool) -> bool {
         self.should_render = true;
         let location = (x % 64) + 64 * (y % 32);
-        let collision = self.pixels[location] & val;
+        let collision = self.pixels[location] && val;
         self.pixels[location] ^= val;
-        collision == 0x01
+        collision
     }
     pub fn set_key_down(&mut self, keycode: Keycode) {
         if let Some(i) = self.get_key_index(keycode) {
@@ -322,7 +322,7 @@ impl Proc {
             .iter()
             .enumerate()
             .filter_map(|(pos, &b)| {
-                if b == 0x01 {
+                if b {
                     Some(Rect::new(
                         (pos % 64) as i32 * SCALE,
                         (pos / 64) as i32 * SCALE,
@@ -343,7 +343,7 @@ mod tests {
     use crate::compile;
 
     fn exec(prg: &str) -> Proc {
-        let binary = compile(prg.to_string()).unwrap();
+        let binary = compile(format!(".code\n{}\nret", prg)).unwrap();
         let mut proc = Proc::binary(&binary).unwrap();
 
         while let Ok(ProgramState::Continue) = proc.cycle() {}
@@ -355,11 +355,9 @@ mod tests {
     fn test_add() {
         let proc = exec(
             r#"
-.code
     ld v0 10
     ld v1 10
     add v0 v1
-    ret
             "#,
         );
 
@@ -370,11 +368,9 @@ mod tests {
     fn test_and() {
         let proc = exec(
             r#"
-.code
     ld v0 0xFF
     ld v1 0x0F
     and v0 v1
-    ret
             "#,
         );
 
@@ -385,11 +381,9 @@ mod tests {
     fn test_or() {
         let proc = exec(
             r#"
-.code
     ld v0 0xF0
     ld v1 0x0F
     or v0 v1
-    ret
             "#,
         );
 
@@ -398,14 +392,148 @@ mod tests {
 
     #[test]
     fn test_set_addr() {
-        let proc = exec(
-            r#"
-.code
-    ld i 0xFFF
-    ret
-            "#,
-        );
+        let proc = exec("ld i 0xFFF");
 
         assert_eq!(proc.i, 0xFFF);
+    }
+
+    #[test]
+    fn test_is_equal() {
+        let proc = exec(
+            r#"
+    ld v0 1
+    ld v1 1
+    se v0 v1
+    ld v0 10
+    "#,
+        );
+
+        assert_eq!(proc.rg[0], 1);
+    }
+
+    #[test]
+    fn test_is_not_equal() {
+        let proc = exec(
+            r#"
+    ld v0 1
+    ld v1 1
+    sne v0 v1
+    ld v0 10
+    "#,
+        );
+
+        assert_eq!(proc.rg[0], 10);
+    }
+
+    #[test]
+    fn test_skip_is_equal() {
+        let proc = exec(
+            r#"
+    ld v0 1
+    ld v1 2
+    se v0 v1
+    ld v0 10
+    "#,
+        );
+
+        assert_eq!(proc.rg[0], 10);
+    }
+
+    #[test]
+    fn test_skip_is_not_equal() {
+        let proc = exec(
+            r#"
+    ld v0 1
+    ld v1 2
+    sne v0 v1
+    ld v0 10
+    "#,
+        );
+
+        assert_eq!(proc.rg[0], 1);
+    }
+
+    #[test]
+    fn test_bcd() {
+        let proc = exec(
+            r#"
+    ld v0 123
+    ld b v0
+    ld v2 [i]
+    "#,
+        );
+
+        assert_eq!(proc.rg[0], 1);
+        assert_eq!(proc.rg[1], 2);
+        assert_eq!(proc.rg[2], 3);
+    }
+
+    #[test]
+    fn test_font_load() {
+        let proc = exec(
+            r#"
+    ld v0 2
+    ld f v0
+    "#,
+        );
+
+        assert_eq!(proc.i, 10);
+    }
+
+    #[test]
+    fn test_call() {
+        let proc = exec(
+            r#"
+    call addr
+    ret
+
+addr:
+    ld v0 5
+    "#,
+        );
+
+        assert_eq!(proc.rg[0], 5);
+    }
+
+    #[test]
+    fn test_jump() {
+        let proc = exec(
+            r#"
+    jp addr
+done:
+    ret
+
+addr:
+    ld v0 5
+    jp done
+    "#,
+        );
+
+        assert_eq!(proc.rg[0], 5);
+    }
+
+    #[test]
+    fn test_sub() {
+        let proc = exec(
+            r#"
+    ld v0 10
+    ld v1 5
+    sub v0 v1
+    "#,
+        );
+
+        assert_eq!(proc.rg[0], 5);
+
+        let proc = exec(
+            r#"
+    ld v0 10
+    ld v1 5
+    sub v1 v0
+    "#,
+        );
+
+        assert_eq!(proc.rg[0], 10);
+        assert_eq!(proc.rg[1], 251);
+        assert_eq!(proc.rg[0xF], 1);
     }
 }

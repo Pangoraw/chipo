@@ -166,7 +166,7 @@ impl<'a> Parser<'a> {
         let tokens: Vec<&str> = ir.split_whitespace().collect();
 
         let res = match tokens[0] {
-            "call" => Ok(Call(self.parse_addr(tokens[1])? - 2)),
+            "call" => Ok(Call(self.parse_addr(tokens[1])?)),
             "ret" => Ok(Return),
             "drw" => Ok(Disp(
                 parse_register(tokens[1])?,
@@ -428,7 +428,7 @@ addr:
         .map_err(|e| e.to_string())?;
 
         assert_eq!(symbols[0], Instruction::GoTo(0x206));
-        assert_eq!(symbols[1], Instruction::Call(0x204)); // Calls at -2
+        assert_eq!(symbols[1], Instruction::Call(0x206)); // Calls at -2
         assert_eq!(*symbols.last().unwrap(), Instruction::GoTo(0x200));
         Ok(())
     }
