@@ -33,6 +33,13 @@ impl std::fmt::Display for ParserError {
             UnknownSection(section) => format!("unknown section '{}'", section),
             InvalidAddress(address) => format!("address '{}' is invalid", address),
             DuplicateAddress(address) => format!("address '{}' has already been declared", address),
+            WrongNumberOfArguments => String::from("wrong number of arguments"),
+            WrongJumpRegister => String::from("you can only jump to xxx + v0"),
+            UnknownSection(section) => format!("section '{}' is not allowed", section),
+            InstructionErr(instruction) => format!("wrong instruction: '{}'", instruction),
+            RegisterErr(register) => format!("invalid register '{}'", register),
+            ParseIntErr(..) => String::from("invalid integer"),
+            InvalidAddress(address) => format!("invalid address '{}'", address),
             _ => format!("unknown parsing error: {:?}", self),
         };
         f.write_str(&value)
@@ -160,7 +167,7 @@ impl<'a> Parser<'a> {
 
     fn parse_instr(&mut self, line: &str) -> Result<Instruction> {
         use Instruction::*;
-        let ir = line.trim().to_lowercase();
+        let ir = line.to_lowercase();
         let tokens: Vec<&str> = ir.split_whitespace().collect();
 
         let res = match tokens[0] {
@@ -276,11 +283,14 @@ impl<'a> Parser<'a> {
 
         instructions
             .iter()
-            .filter(|line| {
+            .filter_map(|line| {
                 let trim = line.trim();
-                !trim.ends_with(':') && !trim.is_empty()
+                if !trim.ends_with(':') && !trim.is_empty() {
+                    Some(self.parse_instr(trim))
+                } else {
+                    None
+                }
             })
-            .map(|line| self.parse_instr(line))
             .collect::<Result<Vec<Instruction>>>()
     }
 }
