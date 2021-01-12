@@ -4,7 +4,13 @@ use std::path::PathBuf;
 use colorful::Colorful;
 use structopt::StructOpt;
 
-use chipo::{compile, reverse_parse, run, ChipoError, Result};
+use chipo::{
+    compile,
+    error::{ChipoError, Result},
+    reverse_parse,
+};
+
+use chipo_native::run;
 
 #[derive(StructOpt)]
 struct Opt {

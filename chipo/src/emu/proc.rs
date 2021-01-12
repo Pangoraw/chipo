@@ -1,10 +1,6 @@
 use rand::Rng;
 
-use crate::media::screen::SCALE;
-use sdl2::keyboard::Keycode;
-use sdl2::rect::Rect;
-
-use crate::emu::{Addr, Instruction, Instruction::*, Val};
+use crate::emu::{Addr, Instruction, Instruction::*, Keycode, Val};
 use crate::error::{ChipoError, Result};
 
 #[derive(Debug)]
@@ -66,6 +62,9 @@ impl Proc {
         }
 
         Ok(proc)
+    }
+    pub fn get_pixels(&self) -> &[bool] {
+        return &self.pixels;
     }
     pub fn cycle(&mut self) -> Result<ProgramState> {
         let instr = ((self.memory[self.pc] as u16) << 8) + (self.memory[self.pc + 1] as u16);
@@ -315,24 +314,6 @@ impl Proc {
     }
     pub fn should_buzz(&self) -> bool {
         self.sound_rg > 0
-    }
-    pub fn to_rects(&self) -> Vec<Rect> {
-        self.pixels
-            .iter()
-            .enumerate()
-            .filter_map(|(pos, &b)| {
-                if b {
-                    Some(Rect::new(
-                        (pos % 64) as i32 * SCALE,
-                        (pos / 64) as i32 * SCALE,
-                        SCALE as u32,
-                        SCALE as u32,
-                    ))
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<Rect>>()
     }
 }
 

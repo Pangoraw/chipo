@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>A Chip8 emulator</title>
+</head>
+<body>
+  <textarea id="code" cols="50" rows="10"></textarea>
+
+  <script type="module">
+    import init, { compile } from "./pkg/chipo_web.js";
+
+    const area = document.getElementById('code');
+    async function run() {
+      await init();
+
+      area.addEventListener("change", () => {
+        const slice = new Uint8Array(1000); 
+        const len = compile(area.value, slice)
+        for (var i = 0; i < len; i++) {
+          const p = document.createElement("p");
+          p.innerText = `0x${slice[i].toString(16).toUpperCase()}`;
+          document.body.appendChild(p);
+        }
+      });
+    }
+
+    run();
+  </script>
+</body>
+</html>

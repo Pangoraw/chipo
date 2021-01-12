@@ -1,0 +1,11 @@
+[package]
+name = "chipo"
+version = "0.1.0"
+authors = ["Paul Berg <paul.berg@etu.utc.fr>"]
+edition = "2018"
+
+[lib]
+crate-type = ["lib"]
+
+[dependencies]
+rand = "0.7"

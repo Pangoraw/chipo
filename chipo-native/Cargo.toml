@@ -1,0 +1,15 @@
+[package]
+name = "chipo-native"
+version = "0.1.0"
+authors = ["Paul Berg <paul.berg@etu.utc.fr>"]
+edition = "2018"
+default-run = "chipo"
+
+[lib]
+crate-type = ["lib"]
+
+[dependencies]
+chipo = { path = "../chipo" }
+colorful = "0.2.1"
+sdl2 = "0.32"
+structopt = "0.3.21"
