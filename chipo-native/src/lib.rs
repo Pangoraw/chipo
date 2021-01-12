@@ -39,7 +39,7 @@ fn sdl_into_chipo(kc: SDLKeycode) -> Keycode {
 }
 
 fn proc_to_rects(proc: &Proc) -> Vec<Rect> {
-    proc.get_pixels()
+    proc.pixels
         .iter()
         .enumerate()
         .filter_map(|(pos, &b)| {
@@ -82,6 +82,7 @@ pub fn run(blob: &[u8]) -> Result<()> {
                 last_update = now;
                 proc.decrement_registers();
                 if proc.should_render {
+                    proc.should_render = false;
                     canvas.fill_rects(&proc_to_rects(&proc)).unwrap();
                     canvas.present();
                 }

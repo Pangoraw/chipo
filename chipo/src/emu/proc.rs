@@ -13,7 +13,7 @@ pub struct Proc {
     pc: usize,
     stack: Vec<Addr>,
     pub should_render: bool,
-    pixels: [bool; 64 * 32],
+    pub pixels: [bool; 64 * 32],
     keys: [bool; 16],
 }
 
@@ -62,9 +62,6 @@ impl Proc {
         }
 
         Ok(proc)
-    }
-    pub fn get_pixels(&self) -> &[bool] {
-        return &self.pixels;
     }
     pub fn cycle(&mut self) -> Result<ProgramState> {
         let instr = ((self.memory[self.pc] as u16) << 8) + (self.memory[self.pc + 1] as u16);
