@@ -2,6 +2,9 @@
 	<img src="https://user-images.githubusercontent.com/9824244/104019357-b73e9c00-51bb-11eb-9b46-b49b924d6d8e.png" />
 </div>
 
+[![](https://img.shields.io/badge/Website-chipo.ber.gp-brightgreen)](https://chipo.ber.gp)
+
+
 ---
 
 > Chip-8 is a simple, interpreted, programming language which was first used on some 	do-it-yourself computer systems in the late 1970s and early 1980s.
@@ -14,7 +17,7 @@ This repository contains three crates:
 
 - `chipo` contains the core of emulation and the assembly toolchain
 - `chipo-native` provides a native integration of the emulator using SDL2
-- `chipo-web` is a web integration of the emulator using WebAssembly
+- `chipo-web` is a web integration of the emulator using WebAssembly. [Try it online!](https://chipo.ber.gp/)
 
 ## Running programs
 
