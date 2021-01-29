@@ -28,7 +28,7 @@ fn read_from_file(file: &PathBuf) -> Result<Vec<u8>> {
     match file.extension().and_then(std::ffi::OsStr::to_str) {
         Some("s") => {
             let asm = read_to_string(file)?;
-            compile(asm)
+            compile(&asm)
         }
         Some("c8") | Some("ch8") => read(file).map_err(ChipoError::IOError),
         _ => Err(ChipoError::InvalidFile(file.to_str().unwrap().to_string())),

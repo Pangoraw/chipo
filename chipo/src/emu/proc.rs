@@ -320,7 +320,7 @@ mod tests {
     use crate::compile;
 
     fn exec(prg: &str) -> Proc {
-        let binary = compile(format!(".code\n{}\nret", prg)).unwrap();
+        let binary = compile(&format!(".code\n{}\nret", prg)).unwrap();
         let mut proc = Proc::binary(&binary).unwrap();
 
         while let Ok(ProgramState::Continue) = proc.cycle() {}

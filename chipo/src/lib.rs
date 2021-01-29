@@ -6,8 +6,8 @@ use crate::emu::Instruction;
 use crate::error::{ChipoError, Result};
 use crate::parser::parse;
 
-pub fn compile(asm: String) -> Result<Vec<u8>> {
-    Ok(parse(&asm)?
+pub fn compile(asm: &str) -> Result<Vec<u8>> {
+    Ok(parse(asm)?
         .iter()
         .map(|inst| inst.to_bin())
         .flat_map(|b| vec![(b >> 8) as u8, b as u8].into_iter())
@@ -43,7 +43,7 @@ mod tests {
   cls
   drw v0, v1, 0x05
   ret"#;
-        let tokens = compile(code.to_string()).unwrap();
+        let tokens = compile(&code.to_string()).unwrap();
         let res = reverse_parse(&tokens).unwrap();
         assert_eq!(res, code);
     }
