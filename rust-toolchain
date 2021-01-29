@@ -1,0 +1,4 @@
+[toolchain]
+channel = "nightly"
+components = ["rustc-dev"]
+targets = ["wasm32-wasi", "x86_64-unkwown-linux-gnu"]
