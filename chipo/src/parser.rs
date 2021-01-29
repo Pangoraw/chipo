@@ -5,8 +5,7 @@ use std::num::ParseIntError;
 use crate::emu::{Addr, Instruction, Vx};
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum ParserError {
-    NoCodeSection,
+pub enum LineError {
     WrongNumberOfArguments(usize, usize),
     WrongJumpRegister,
     UnknownSection(String),
@@ -17,19 +16,28 @@ pub enum ParserError {
     DuplicateAddress(String),
 }
 
-impl From<ParseIntError> for ParserError {
-    fn from(err: ParseIntError) -> Self {
-        ParserError::ParseIntErr(err)
+#[derive(Debug, PartialEq, Eq)]
+pub enum ParserError {
+    NoCodeSection,
+    LineErr {
+        line_number: usize,
+        error: LineError,
+    },
+}
+
+impl ParserError {
+    pub fn line(number: usize, err: LineError) -> Self {
+        ParserError::LineErr {
+            line_number: number,
+            error: err,
+        }
     }
 }
 
-impl std::fmt::Display for ParserError {
+impl std::fmt::Display for LineError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use ParserError::*;
-
-        #[allow(unreachable_patterns)]
+        use LineError::*;
         let value = match self {
-            NoCodeSection => "missing .code section".to_string(),
             UnknownSection(section) => format!("unknown section '{}'", section),
             InvalidAddress(address) => format!("address '{}' is invalid", address),
             DuplicateAddress(address) => format!("address '{}' has already been declared", address),
@@ -38,36 +46,47 @@ impl std::fmt::Display for ParserError {
                 expected, received
             ),
             WrongJumpRegister => String::from("you can only jump to xxx + v0"),
-            UnknownSection(section) => format!("section '{}' is not allowed", section),
             InstructionErr(instruction) => format!("wrong instruction: '{}'", instruction),
             RegisterErr(register) => format!("invalid register '{}'", register),
             ParseIntErr(..) => String::from("invalid integer"),
-            InvalidAddress(address) => format!("invalid address '{}'", address),
-            _ => format!("unknown parsing error: {:?}", self),
+        };
+        f.write_str(&value)
+    }
+}
+
+impl std::fmt::Display for ParserError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use ParserError::*;
+        let value = match self {
+            NoCodeSection => "missing .code section".to_string(),
+            LineErr { line_number, error } => {
+                format!("line {}: {}", line_number, error.to_string(),)
+            }
         };
         f.write_str(&value)
     }
 }
 
 type Result<T> = std::result::Result<T, ParserError>;
+type LineResult<T> = std::result::Result<T, LineError>;
 
-fn assert_num_args(expected: usize, received: usize) -> Result<()> {
+fn assert_num_args(expected: usize, received: usize) -> LineResult<()> {
     if expected != received {
-        Err(ParserError::WrongNumberOfArguments(expected, received))
+        Err(LineError::WrongNumberOfArguments(expected, received))
     } else {
         Ok(())
     }
 }
 
-fn parse_register(reg: &str) -> Result<Vx> {
+fn parse_register(reg: &str) -> LineResult<Vx> {
     match reg.chars().next() {
         Some('v') => match reg.len() {
             2 => u8::from_str_radix(&reg[1..], 16)
                 .map(|vx| vx as usize)
-                .map_err(|_| ParserError::RegisterErr(reg.to_string())),
-            _ => Err(ParserError::RegisterErr(reg.to_string())),
+                .map_err(|_| LineError::RegisterErr(reg.to_string())),
+            _ => Err(LineError::RegisterErr(reg.to_string())),
         },
-        _ => Err(ParserError::RegisterErr(reg.to_string())),
+        _ => Err(LineError::RegisterErr(reg.to_string())),
     }
 }
 
@@ -89,14 +108,14 @@ trait FromStrRadix
 where
     Self: Sized,
 {
-    fn from_str_radix(src: &str, radix: u32) -> Result<Self>;
+    fn from_str_radix(src: &str, radix: u32) -> LineResult<Self>;
 }
 
 macro_rules! impl_from_str_radix {
     ($t: ty) => {
         impl FromStrRadix for $t {
-            fn from_str_radix(src: &str, radix: u32) -> Result<Self> {
-                <$t>::from_str_radix(src, radix).map_err(ParserError::ParseIntErr)
+            fn from_str_radix(src: &str, radix: u32) -> LineResult<Self> {
+                <$t>::from_str_radix(src, radix).map_err(LineError::ParseIntErr)
             }
         }
     };
@@ -106,44 +125,52 @@ impl_from_str_radix!(u8);
 impl_from_str_radix!(u16);
 impl_from_str_radix!(u32);
 
-fn parse_number<T>(number: &str) -> Result<T>
+fn parse_number<T>(number: &str) -> LineResult<T>
 where
     T: FromStrRadix + std::str::FromStr<Err = std::num::ParseIntError>,
 {
     if let Some(slice) = number.strip_prefix("0x") {
         T::from_str_radix(slice, 16)
     } else {
-        number.parse::<T>().map_err(ParserError::ParseIntErr)
+        number.parse::<T>().map_err(LineError::ParseIntErr)
     }
 }
 
 impl<'a> Parser<'a> {
-    fn parse_data_instr(&self, instruction: &'a str) -> Result<(&'a str, Vec<Instruction>)> {
+    fn parse_data_instr(&self, instruction: &'a str) -> LineResult<(&'a str, Vec<Instruction>)> {
         let split_pos = instruction.find(':');
         let split_pos = if let Some(pos) = split_pos {
             pos
         } else {
-            return Err(ParserError::InvalidAddress(instruction.to_string()));
+            return Err(LineError::InvalidAddress(instruction.to_string()));
         };
         let name = &instruction[..split_pos];
         let instr = instruction[split_pos + 1..]
             .trim()
             .split_whitespace()
             .map(|val| parse_number(val).map(Instruction::Raw))
-            .collect::<Result<Vec<Instruction>>>()?;
+            .collect::<LineResult<Vec<Instruction>>>()?;
 
         Ok((name, instr))
     }
 
-    pub fn parse_data(&mut self, instructions: &[&'a str]) -> Result<Vec<Instruction>> {
+    pub fn parse_data(&mut self, instructions: &[(usize, &'a str)]) -> Result<Vec<Instruction>> {
         let mut offset = 0x202;
         let mut data_instructions = vec![];
-        for address in instructions.iter().filter(|line| {
+        for (i, address) in instructions.iter().filter(|(_, line)| {
             let trim = line.trim();
             !trim.is_empty() && !trim.starts_with(';')
         }) {
-            let (name, mut instructions) = self.parse_data_instr(address)?;
-            self.known_addresses.insert(name, offset);
+            let (name, mut instructions) = self
+                .parse_data_instr(address)
+                .map_err(|err| ParserError::line(*i, err))?;
+            let res = self.known_addresses.insert(name, offset);
+            if !res.is_none() {
+                return Err(ParserError::line(
+                    *i,
+                    LineError::DuplicateAddress(name.to_string()),
+                ));
+            }
             offset += 2 * instructions.len();
             data_instructions.append(&mut instructions);
         }
@@ -157,7 +184,7 @@ impl<'a> Parser<'a> {
         Ok(first_instruction)
     }
 
-    fn parse_addr(&self, symbol: &str) -> Result<Addr> {
+    fn parse_addr(&self, symbol: &str) -> LineResult<Addr> {
         let address = self.known_addresses.get(symbol);
 
         if let Some(location) = address {
@@ -171,12 +198,12 @@ impl<'a> Parser<'a> {
             if let Ok(offset) = parse_rel {
                 Ok((2 * offset + self.current_pointer as i32) as u32)
             } else {
-                Err(ParserError::InvalidAddress(symbol.to_string()))
+                Err(LineError::InvalidAddress(symbol.to_string()))
             }
         }
     }
 
-    fn parse_instr(&mut self, line: &str) -> Result<Instruction> {
+    fn parse_instr(&mut self, line: &str) -> LineResult<Instruction> {
         use Instruction::*;
         let ir = line.to_lowercase();
 
@@ -270,12 +297,12 @@ impl<'a> Parser<'a> {
                 }
                 2 => {
                     if tokens[0] != "v0" {
-                        Err(ParserError::WrongJumpRegister)
+                        Err(LineError::WrongJumpRegister)
                     } else {
                         Ok(Jump(self.parse_addr(tokens[1])?))
                     }
                 }
-                _ => Err(ParserError::WrongNumberOfArguments(1, tokens.len())),
+                _ => Err(LineError::WrongNumberOfArguments(1, tokens.len())),
             },
             "add" => {
                 assert_num_args(2, tokens.len())?;
@@ -318,7 +345,7 @@ impl<'a> Parser<'a> {
                 assert_num_args(1, tokens.len())?;
                 Ok(KeyOpNeq(parse_register(tokens[0])?))
             }
-            _ => Err(ParserError::InstructionErr(instruction.to_string())),
+            _ => Err(LineError::InstructionErr(instruction.to_string())),
         };
 
         if res.is_ok() {
@@ -327,13 +354,13 @@ impl<'a> Parser<'a> {
         res
     }
 
-    pub fn parse_code(&mut self, instructions: &[&'a str]) -> Result<Vec<Instruction>> {
+    pub fn parse_code(&mut self, instructions: &[(usize, &'a str)]) -> Result<Vec<Instruction>> {
         let mut seen = 0;
-        for (i, mem) in instructions
+        for (i, (ln, mem)) in instructions
             .iter()
-            .filter(|line| !line.is_empty()) // TODO: Merge the two filters
+            .filter(|(_, line)| !line.is_empty()) // TODO: Merge the two filters
             .enumerate()
-            .filter(|(_i, line)| line.trim_end().ends_with(':'))
+            .filter(|(_, (_, line))| line.trim_end().ends_with(':'))
         {
             let addr_name = mem.trim();
             let addr_name = &addr_name[..addr_name.len() - 1];
@@ -342,17 +369,23 @@ impl<'a> Parser<'a> {
                 .known_addresses
                 .insert(&addr_name, self.current_pointer as usize + 2 * i - seen);
             if res.is_some() {
-                return Err(ParserError::DuplicateAddress(addr_name.to_string()));
+                return Err(ParserError::line(
+                    *ln,
+                    LineError::DuplicateAddress(addr_name.to_string()),
+                ));
             }
             seen += 2;
         }
 
         instructions
             .iter()
-            .filter_map(|line| {
+            .filter_map(|(i, line)| {
                 let trim = line.trim();
                 if !trim.ends_with(':') && !trim.is_empty() {
-                    Some(self.parse_instr(trim))
+                    Some(
+                        self.parse_instr(trim)
+                            .map_err(|err| ParserError::line(*i, err)),
+                    )
                 } else {
                     None
                 }
@@ -362,18 +395,19 @@ impl<'a> Parser<'a> {
 }
 
 pub fn parse(program: &str) -> Result<Vec<Instruction>> {
-    // Find .code section, TODO: use .data and insert instructions first
     let program = program.trim();
-    let lines: Vec<&str> = program
+    let lines: Vec<(usize, &str)> = program
         .split('\n')
-        .filter_map(|line| {
+        .enumerate()
+        .filter_map(|(idx, line)| {
+            let new_idx = idx + 1;
             let trim = line.trim();
             let comment_pos = trim.find(';');
             match comment_pos {
                 // inline comments
                 Some(0) => None,
-                Some(pos) => Some(&trim[..pos]),
-                None => Some(trim),
+                Some(pos) => Some((new_idx, &trim[..pos])),
+                None => Some((new_idx, trim)),
             }
         })
         .collect();
@@ -381,7 +415,7 @@ pub fn parse(program: &str) -> Result<Vec<Instruction>> {
     let mut code_sections: HashMap<&str, usize> = lines
         .iter()
         .enumerate()
-        .filter_map(|(i, line)| {
+        .filter_map(|(i, (_, line))| {
             let trim = line.trim();
             if let Some(slice) = trim.strip_prefix('.') {
                 Some((i, slice))
@@ -394,10 +428,7 @@ pub fn parse(program: &str) -> Result<Vec<Instruction>> {
             acc
         });
 
-    assert!(code_sections.len() <= 2);
-
-    let code_section = code_sections.get("code");
-    let code_section_start = if let Some(index) = code_section {
+    let code_section_start = if let Some(index) = code_sections.get("code") {
         *index
     } else {
         return Err(ParserError::NoCodeSection);
@@ -411,8 +442,9 @@ pub fn parse(program: &str) -> Result<Vec<Instruction>> {
         parser.parse_data(data_section_lines)?
     } else {
         if !code_sections.is_empty() {
-            return Err(ParserError::UnknownSection(
-                code_sections.keys().next().unwrap().to_string(),
+            return Err(ParserError::line(
+                *code_sections.values().next().unwrap(),
+                LineError::UnknownSection(code_sections.keys().next().unwrap().to_string()),
             ));
         }
         // no data section
@@ -454,7 +486,10 @@ mod tests {
 ; should not be here
             "#,
         ) {
-            Err(ParserError::UnknownSection(unkown_section)) => {
+            Err(ParserError::LineErr {
+                line_number: _,
+                error: LineError::UnknownSection(unkown_section),
+            }) => {
                 if unkown_section == "other_weird_section" {
                     Ok(())
                 } else {
@@ -474,7 +509,10 @@ start:
     jp unkown
             "#,
         ) {
-            Err(ParserError::InvalidAddress(symbol)) => {
+            Err(ParserError::LineErr {
+                line_number: _,
+                error: LineError::InvalidAddress(symbol),
+            }) => {
                 if symbol == "unkown" {
                     Ok(())
                 } else {
@@ -547,7 +585,7 @@ start:
 
     fn test_compile(code: &str, inst: Instruction) -> std::result::Result<(), String> {
         let mut parser = Parser::default();
-        let compiled = parser.parse_code(&[code]).unwrap();
+        let compiled = parser.parse_code(&[(1, code)]).unwrap();
         if compiled[0] == inst {
             Ok(())
         } else {
@@ -560,7 +598,7 @@ start:
 
     fn test_compile_to_bin(code: &str, val: u16) -> std::result::Result<(), String> {
         let mut parser = Parser::default();
-        let compiled = parser.parse_code(&[code]).unwrap()[0].to_bin();
+        let compiled = parser.parse_code(&[(1, code)]).unwrap()[0].to_bin();
         if compiled == val {
             Ok(())
         } else {
@@ -602,30 +640,30 @@ start:
 
     #[test]
     fn test_parse_register_fail() {
-        let expected: std::result::Result<usize, ParserError> =
-            Err(ParserError::RegisterErr("vff".to_string()));
+        let expected: std::result::Result<usize, LineError> =
+            Err(LineError::RegisterErr("vff".to_string()));
         assert_eq!(parse_register("vff"), expected);
-        let expected: std::result::Result<usize, ParserError> =
-            Err(ParserError::RegisterErr("v10".to_string()));
+        let expected: std::result::Result<usize, LineError> =
+            Err(LineError::RegisterErr("v10".to_string()));
         assert_eq!(parse_register("v10"), expected);
-        let expected: std::result::Result<usize, ParserError> =
-            Err(ParserError::RegisterErr("123".to_string()));
+        let expected: std::result::Result<usize, LineError> =
+            Err(LineError::RegisterErr("123".to_string()));
         assert_eq!(parse_register("123"), expected);
     }
 
     #[test]
     fn test_parse_register_success() {
-        let expected: std::result::Result<usize, ParserError> = Ok(3);
+        let expected: std::result::Result<usize, LineError> = Ok(3);
         assert_eq!(parse_register("v3"), expected);
-        let expected: std::result::Result<usize, ParserError> = Ok(0xF);
+        let expected: std::result::Result<usize, LineError> = Ok(0xF);
         assert_eq!(parse_register("vf"), expected);
     }
 
     #[test]
     fn test_parse_number() {
-        let expected: std::result::Result<u8, ParserError> = Ok(3);
+        let expected: std::result::Result<u8, LineError> = Ok(3);
         assert_eq!(parse_number("3"), expected);
-        let expected: std::result::Result<u8, ParserError> = Ok(0xF);
+        let expected: std::result::Result<u8, LineError> = Ok(0xF);
         assert_eq!(parse_number("0x0F"), expected);
     }
 
@@ -634,5 +672,64 @@ start:
         assert!(parse_number::<u8>("v3").is_err());
         assert!(parse_number::<u8>("0xFFF").is_err()); // Overflow
         assert!(parse_number::<u16>("0xgF").is_err());
+    }
+
+    #[test]
+    fn test_error_line_number() {
+        let res = parse(
+            r#"
+.code
+
+    ld v0, vkw
+
+            "#,
+        );
+        assert_eq!(
+            res,
+            Err(ParserError::LineErr {
+                line_number: 3,
+                error: LineError::RegisterErr("vkw".to_string()),
+            })
+        );
+        let res = parse(
+            r#"
+.data
+
+
+x: 0xffff
+x: 0xffff
+
+.code
+
+
+            "#,
+        );
+        assert_eq!(
+            res,
+            Err(ParserError::LineErr {
+                line_number: 5,
+                error: LineError::DuplicateAddress("x".to_string()),
+            })
+        );
+        let res = parse(
+            r#"
+.data
+
+
+x: 0xffff
+
+.code
+
+x:
+
+            "#,
+        );
+        assert_eq!(
+            res,
+            Err(ParserError::LineErr {
+                line_number: 8,
+                error: LineError::DuplicateAddress("x".to_string()),
+            })
+        );
     }
 }
