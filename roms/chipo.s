@@ -13,36 +13,36 @@ i_letter: 0x7020 0x2020 0x7000
 p: 0xE090 0xE080 0x8000
 
 .code ; start code
-	ld v0 10
-	ld v1 12
+	ld v0, 10
+	ld v1, 12
 
-	ld i stripe
+	ld i, stripe
 	call next
 
-	ld v3 0xC
-	ld f v3
+	ld v3, 0xC
+	ld f, v3
 	call next
 
-	ld i h
+	ld i, h
 	call next
 
-	ld i i_letter
+	ld i, i_letter
 	call next
 
-	ld i p
+	ld i, p
 	call next
 
-	ld v3 0
-	ld f v3
+	ld v3, 0
+	ld f, v3
 	call next
 
-	ld i stripe
+	ld i, stripe
 	call next
 
-	ld v2 k
+	ld v2, k
 	ret
 
 next:
-	add v0 5
-	drw v0 v1 5
+	add v0, 5
+	drw v0, v1, 5
 	ret

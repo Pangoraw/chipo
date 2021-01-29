@@ -32,16 +32,16 @@ g: 0x1200 0x1200 ; Only unsigned 16 hexadecimal numbers are supported for now
 
 .code
 start:
-	ld v1 10 ; Load 100 in register v1
+	ld v1, 10 ; Load 100 in register v1
 	call func ; Call function at address @func
-	ld v0 k ; Wait for keyboard event
+	ld v0, k ; Wait for keyboard event
 	ret
 
 func:
-	ld v2 0x0F
-	ld v3 1
-	ld f v3
-	drw v2 v1 5
+	ld v2, 0x0F
+	ld v3, 1
+	ld f, v3
+	drw v2, v1, 5
 	ret
 ```
 

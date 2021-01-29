@@ -39,9 +39,9 @@ mod tests {
     #[test]
     fn test_reverse() {
         let code = r#".code
-  ld v0 0x01
+  ld v0, 0x01
   cls
-  drw v0 v1 0x05
+  drw v0, v1, 0x05
   ret"#;
         let tokens = compile(code.to_string()).unwrap();
         let res = reverse_parse(&tokens).unwrap();

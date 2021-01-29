@@ -332,9 +332,9 @@ mod tests {
     fn test_add() {
         let proc = exec(
             r#"
-    ld v0 10
-    ld v1 10
-    add v0 v1
+    ld v0, 10
+    ld v1, 10
+    add v0, v1
             "#,
         );
 
@@ -345,9 +345,9 @@ mod tests {
     fn test_and() {
         let proc = exec(
             r#"
-    ld v0 0xFF
-    ld v1 0x0F
-    and v0 v1
+    ld v0, 0xFF
+    ld v1, 0x0F
+    and v0, v1
             "#,
         );
 
@@ -358,9 +358,9 @@ mod tests {
     fn test_or() {
         let proc = exec(
             r#"
-    ld v0 0xF0
-    ld v1 0x0F
-    or v0 v1
+    ld v0, 0xF0
+    ld v1, 0x0F
+    or v0, v1
             "#,
         );
 
@@ -369,7 +369,7 @@ mod tests {
 
     #[test]
     fn test_set_addr() {
-        let proc = exec("ld i 0xFFF");
+        let proc = exec("ld i, 0xFFF");
 
         assert_eq!(proc.i, 0xFFF);
     }
@@ -378,10 +378,10 @@ mod tests {
     fn test_is_equal() {
         let proc = exec(
             r#"
-    ld v0 1
-    ld v1 1
-    se v0 v1
-    ld v0 10
+    ld v0, 1
+    ld v1, 1
+    se v0, v1
+    ld v0, 10
     "#,
         );
 
@@ -392,10 +392,10 @@ mod tests {
     fn test_is_not_equal() {
         let proc = exec(
             r#"
-    ld v0 1
-    ld v1 1
-    sne v0 v1
-    ld v0 10
+    ld v0, 1
+    ld v1, 1
+    sne v0, v1
+    ld v0, 10
     "#,
         );
 
@@ -406,10 +406,10 @@ mod tests {
     fn test_skip_is_equal() {
         let proc = exec(
             r#"
-    ld v0 1
-    ld v1 2
-    se v0 v1
-    ld v0 10
+    ld v0, 1
+    ld v1, 2
+    se v0, v1
+    ld v0, 10
     "#,
         );
 
@@ -420,10 +420,10 @@ mod tests {
     fn test_skip_is_not_equal() {
         let proc = exec(
             r#"
-    ld v0 1
-    ld v1 2
-    sne v0 v1
-    ld v0 10
+    ld v0, 1
+    ld v1, 2
+    sne v0, v1
+    ld v0, 10
     "#,
         );
 
@@ -434,9 +434,9 @@ mod tests {
     fn test_bcd() {
         let proc = exec(
             r#"
-    ld v0 123
-    ld b v0
-    ld v2 [i]
+    ld v0, 123
+    ld b, v0
+    ld v2, [i]
     "#,
         );
 
@@ -449,8 +449,8 @@ mod tests {
     fn test_font_load() {
         let proc = exec(
             r#"
-    ld v0 2
-    ld f v0
+    ld v0, 2
+    ld f, v0
     "#,
         );
 
@@ -465,7 +465,7 @@ mod tests {
     ret
 
 addr:
-    ld v0 5
+    ld v0, 5
     "#,
         );
 
@@ -481,7 +481,7 @@ done:
     ret
 
 addr:
-    ld v0 5
+    ld v0, 5
     jp done
     "#,
         );
@@ -493,9 +493,9 @@ addr:
     fn test_sub() {
         let proc = exec(
             r#"
-    ld v0 10
-    ld v1 5
-    sub v0 v1
+    ld v0, 10
+    ld v1, 5
+    sub v0, v1
     "#,
         );
 
@@ -503,9 +503,9 @@ addr:
 
         let proc = exec(
             r#"
-    ld v0 10
-    ld v1 5
-    sub v1 v0
+    ld v0, 10
+    ld v1, 5
+    sub v1, v0
     "#,
         );
 

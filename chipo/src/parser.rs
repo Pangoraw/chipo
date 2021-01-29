@@ -168,91 +168,99 @@ impl<'a> Parser<'a> {
     fn parse_instr(&mut self, line: &str) -> Result<Instruction> {
         use Instruction::*;
         let ir = line.to_lowercase();
-        let tokens: Vec<&str> = ir.split_whitespace().collect();
 
-        let res = match tokens[0] {
-            "call" => Ok(Call(self.parse_addr(tokens[1])?)),
+        let first_space = ir.find(' ');
+        let (instruction, tokens) = if let Some(pos) = first_space {
+            let (instruction, tokens) = ir.split_at(pos);
+            let tokens: Vec<&str> = tokens.split(',').map(|token| token.trim()).collect();
+            (instruction, tokens)
+        } else {
+            (ir.as_str(), Vec::new())
+        };
+
+        let res = match instruction {
+            "call" => Ok(Call(self.parse_addr(tokens[0])?)),
             "ret" => Ok(Return),
             "drw" => Ok(Disp(
+                parse_register(tokens[0])?,
                 parse_register(tokens[1])?,
-                parse_register(tokens[2])?,
-                parse_number(tokens[3])?,
+                parse_number(tokens[2])?,
             )),
-            "ld" => match tokens[1] {
+            "ld" => match tokens[0] {
                 "i" => {
-                    if let Ok(val) = parse_number(tokens[2]) {
+                    if let Ok(val) = parse_number(tokens[1]) {
                         Ok(SetAddr(val))
                     } else {
-                        Ok(SetAddr(self.parse_addr(tokens[2])?))
+                        Ok(SetAddr(self.parse_addr(tokens[1])?))
                     }
                 }
-                "dt" => Ok(SetTimer(parse_register(tokens[2])?)),
-                "st" => Ok(SetSoundTimer(parse_register(tokens[2])?)),
-                "f" => Ok(FontLoad(parse_register(tokens[2])?)),
-                "b" => Ok(BCD(parse_register(tokens[2])?)),
-                "[i]" => Ok(MemDump(parse_register(tokens[2])?)),
-                _ => match tokens[2] {
-                    "k" => Ok(GetKeyOp(parse_register(tokens[1])?)),
-                    "dt" => Ok(GetTimer(parse_register(tokens[1])?)),
-                    "[i]" => Ok(MemLoad(parse_register(tokens[1])?)),
-                    _ => match tokens[2].chars().next() {
+                "dt" => Ok(SetTimer(parse_register(tokens[1])?)),
+                "st" => Ok(SetSoundTimer(parse_register(tokens[1])?)),
+                "f" => Ok(FontLoad(parse_register(tokens[1])?)),
+                "b" => Ok(BCD(parse_register(tokens[1])?)),
+                "[i]" => Ok(MemDump(parse_register(tokens[1])?)),
+                _ => match tokens[1] {
+                    "k" => Ok(GetKeyOp(parse_register(tokens[0])?)),
+                    "dt" => Ok(GetTimer(parse_register(tokens[0])?)),
+                    "[i]" => Ok(MemLoad(parse_register(tokens[0])?)),
+                    _ => match tokens[1].chars().next() {
                         Some('v') => Ok(SetRg(
+                            parse_register(tokens[0])?,
                             parse_register(tokens[1])?,
-                            parse_register(tokens[2])?,
                         )),
-                        _ => Ok(Set(parse_register(tokens[1])?, parse_number(tokens[2])?)),
+                        _ => Ok(Set(parse_register(tokens[0])?, parse_number(tokens[1])?)),
                     },
                 },
             },
             "se" => {
-                let first_register = parse_register(tokens[1])?;
-                match tokens[2].chars().next() {
-                    Some('v') => Ok(IfEqRg(first_register, parse_register(tokens[2])?)),
-                    _ => Ok(IfEq(first_register, parse_number(tokens[2])?)),
+                let first_register = parse_register(tokens[0])?;
+                match tokens[1].chars().next() {
+                    Some('v') => Ok(IfEqRg(first_register, parse_register(tokens[1])?)),
+                    _ => Ok(IfEq(first_register, parse_number(tokens[1])?)),
                 }
             }
-            "or" => Ok(Or(parse_register(tokens[1])?, parse_register(tokens[2])?)),
-            "and" => Ok(And(parse_register(tokens[1])?, parse_register(tokens[2])?)),
-            "xor" => Ok(Xor(parse_register(tokens[1])?, parse_register(tokens[2])?)),
+            "or" => Ok(Or(parse_register(tokens[0])?, parse_register(tokens[1])?)),
+            "and" => Ok(And(parse_register(tokens[0])?, parse_register(tokens[1])?)),
+            "xor" => Ok(Xor(parse_register(tokens[0])?, parse_register(tokens[1])?)),
             "sne" => {
-                let first_register = parse_register(tokens[1])?;
-                match tokens[2].chars().next() {
-                    Some('v') => Ok(IfNeqRg(first_register, parse_register(tokens[2])?)),
-                    _ => Ok(IfNeq(first_register, parse_number(tokens[2])?)),
+                let first_register = parse_register(tokens[0])?;
+                match tokens[1].chars().next() {
+                    Some('v') => Ok(IfNeqRg(first_register, parse_register(tokens[1])?)),
+                    _ => Ok(IfNeq(first_register, parse_number(tokens[1])?)),
                 }
             }
             "jp" => match tokens.len() {
-                2 => {
-                    let offset = self.parse_addr(&tokens[1])?;
+                1 => {
+                    let offset = self.parse_addr(&tokens[0])?;
                     Ok(GoTo(offset))
                 }
                 3 => {
-                    if tokens[1] != "v0" {
+                    if tokens[0] != "v0" {
                         Err(ParserError::WrongJumpRegister)
                     } else {
-                        Ok(Jump(self.parse_addr(tokens[2])?))
+                        Ok(Jump(self.parse_addr(tokens[1])?))
                     }
                 }
                 _ => Err(ParserError::WrongNumberOfArguments),
             },
-            "add" => match tokens[1] {
-                "i" => Ok(AddToI(parse_register(tokens[2])?)),
-                _ => match tokens[2].chars().next() {
+            "add" => match tokens[0] {
+                "i" => Ok(AddToI(parse_register(tokens[1])?)),
+                _ => match tokens[1].chars().next() {
                     Some('v') => Ok(AddRg(
+                        parse_register(tokens[0])?,
                         parse_register(tokens[1])?,
-                        parse_register(tokens[2])?,
                     )),
-                    _ => Ok(Add(parse_register(tokens[1])?, parse_number(tokens[2])?)),
+                    _ => Ok(Add(parse_register(tokens[0])?, parse_number(tokens[1])?)),
                 },
             },
-            "sub" => Ok(Sub(parse_register(tokens[1])?, parse_register(tokens[2])?)),
-            "shr" => Ok(RightShift(parse_register(tokens[1])?)),
-            "shl" => Ok(LeftShift(parse_register(tokens[1])?)),
+            "sub" => Ok(Sub(parse_register(tokens[0])?, parse_register(tokens[1])?)),
+            "shr" => Ok(RightShift(parse_register(tokens[0])?)),
+            "shl" => Ok(LeftShift(parse_register(tokens[0])?)),
             "cls" => Ok(DisplayClear),
-            "rnd" => Ok(Rand(parse_register(tokens[1])?, parse_number(tokens[2])?)),
-            "skp" => Ok(KeyOpEq(parse_register(tokens[1])?)),
-            "sknp" => Ok(KeyOpNeq(parse_register(tokens[1])?)),
-            _ => Err(ParserError::InstructionErr(tokens[0].to_string())),
+            "rnd" => Ok(Rand(parse_register(tokens[0])?, parse_number(tokens[1])?)),
+            "skp" => Ok(KeyOpEq(parse_register(tokens[0])?)),
+            "sknp" => Ok(KeyOpNeq(parse_register(tokens[0])?)),
+            _ => Err(ParserError::InstructionErr(instruction.to_string())),
         };
 
         if res.is_ok() {
@@ -427,7 +435,7 @@ start:
 start:
     jp addr
     call addr
-    ld v0 12
+    ld v0, 12
 
 addr:
     jp start
@@ -509,27 +517,26 @@ start:
     fn test_from_asm() -> std::result::Result<(), String> {
         use Instruction::*;
 
-        test_compile("DRW V0 V1 2", Disp(0, 1, 2))?;
+        test_compile("DRW V0, V1, 2", Disp(0, 1, 2))?;
         test_compile("RET", Return)?;
         test_compile("CLS", DisplayClear)?;
-        test_compile("LD V0 12", Set(0, 12))?;
-        test_compile("ADD I V2", AddToI(2))?;
-        test_compile("ADD V1 12", Add(1, 12))?;
-        test_compile("LD V4 K", GetKeyOp(4))?;
-        test_compile("LD V0 0xFF", Set(0, 0xFF))?;
-        test_compile("LD V0 0xFF ; a comment", Set(0, 0xFF))?;
+        test_compile("LD V0, 12", Set(0, 12))?;
+        test_compile("ADD I, V2", AddToI(2))?;
+        test_compile("ADD V1, 12", Add(1, 12))?;
+        test_compile("LD V4, K", GetKeyOp(4))?;
+        test_compile("LD V0, 0xFF", Set(0, 0xFF))?;
 
         Ok(())
     }
 
     #[test]
     fn test_from_asm_to_bin() -> std::result::Result<(), String> {
-        test_compile_to_bin("ADD I V2", 0xF21E)?;
-        test_compile_to_bin("ADD V4 1", 0x7401)?;
-        test_compile_to_bin("DRW V1 V2 5", 0xD125)?;
-        test_compile_to_bin("LD [I] V1", 0xF155)?;
-        test_compile_to_bin("LD V0 [I]", 0xF065)?;
-        test_compile_to_bin("LD B V3", 0xF333)?;
+        test_compile_to_bin("ADD I, V2", 0xF21E)?;
+        test_compile_to_bin("ADD V4, 1", 0x7401)?;
+        test_compile_to_bin("DRW V1, V2, 5", 0xD125)?;
+        test_compile_to_bin("LD [I], V1", 0xF155)?;
+        test_compile_to_bin("LD V0, [I]", 0xF065)?;
+        test_compile_to_bin("LD B, V3", 0xF333)?;
         test_compile_to_bin("CLS", 0x00E0)?;
 
         Ok(())
