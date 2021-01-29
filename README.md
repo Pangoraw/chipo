@@ -8,6 +8,14 @@
 
 Chipo is a Chip-8 emulator written in Rust. It was built using [this documentation](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM) on the Chip-8 specification. It also comes with an assembler tool chain allowing the compilation of assembly like files to Chip-8 bytecode.
 
+## Versions
+
+This repository contains three crates:
+
+- `chipo` contains the core of emulation and the assembly toolchain
+- `chipo-native` provides a native integration of the emulator using SDL2
+- `chipo-web` is a web integration of the emulator using WebAssembly
+
 ## Running programs
 
 Chipo can run both `.c8` files and assembly files written with a syntax inspired by [this specification](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM) ending with `.s` extension (see section [Creating programs](#creating-programs) for more details). To run a pre-compiled file, run:
