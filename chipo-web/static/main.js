@@ -106,7 +106,6 @@ async function run() {
         lineNumbers: true,
         mode: "asm",
         theme: "material-darker",
-        keyMap: "vim",
     });
     initEvent("clear", () => {
       codeMirror.setValue("");
