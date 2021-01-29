@@ -1,30 +1,59 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>A Chip8 emulator</title>
-</head>
-<body>
-  <textarea id="code" cols="50" rows="10"></textarea>
+  <head>
+    <title>A Chip-8 emulator</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.59.2/lib/codemirror.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.59.2/theme/material-darker.css">
+    <link rel="stylesheet" href="static/main.css">
+  </head>
+  <body>
+    <div class="container">
+      <main>
+        <h1>Chipo, a Chip-8 Emulator</h1>
+        <p class="sep">=====================================</p>
+        <p class="desc">This is a web version of <a href="https://github.com/Pangoraw/chipo" target="_blank">Chipo</a> compiled using
+        Web Assembly. You can use it to create your own Chip-8 programs and down them for your emulator!</p>
 
-  <script type="module">
-    import init, { compile } from "./pkg/chipo_web.js";
+        <div class="lib">
+            <canvas id="canvas" width="128" height="64"></canvas>
+            <div>
+                ROMS:
+                <ul>
+                    <li class="clickable" data-src="https://raw.githubusercontent.com/Pangoraw/chipo/main/roms/chipo.s">Chipo.s</li>
+                    <li class="clickable" data-src="https://raw.githubusercontent.com/Pangoraw/chipo/main/roms/test.s">Test.s</li>
+                </ul>
+            </div>
+        </div>
+        <p class="error">error: missing code section</p>
 
-    const area = document.getElementById('code');
-    async function run() {
-      await init();
+        <div id="code-mirror"></div>
+        <p><span id="save" class="clickable">[Save]</span><span id="clear" class="clickable">[Clear]</span><span id="run" class="clickable">[Run]</span><span id="stop" class="clickable">[Stop]</span></p>
 
-      area.addEventListener("change", () => {
-        const slice = new Uint8Array(1000); 
-        const len = compile(area.value, slice)
-        for (var i = 0; i < len; i++) {
-          const p = document.createElement("p");
-          p.innerText = `0x${slice[i].toString(16).toUpperCase()}`;
-          document.body.appendChild(p);
-        }
-      });
-    }
+        <p class="sep">=====================================</p>
+        <h2>Settings</h2>
 
-    run();
-  </script>
-</body>
+        <p>Auto-save: <span class="clickable" id="toggle-auto-save">[x]</span></p>
+        <p>Auto-run: <span class="clickable" id="toggle-auto-run">[x]</span></p>
+
+        <p class="sep">=====================================</p>
+        <h2>About</h2>
+
+        <p>You can find <a href="https://github.com/Pangoraw/chipo">the sources</a> for the emulator on Github. This web page was built using the following tools :
+            <ul>
+                <li><a href="https://codemirror.net/">CodeMirror</a> for the editor</li>
+                <li><a href="https://github.com/rustwasm/wasm-pack">WASM-Pack</a> to compile the rust sources to Web Assembly</li>
+                <li>The <a href="https://www.fontspace.com/press-start-2p-font-f11591">Press Start 2P</a> font</li>
+            </ul>
+            PS: this page is "retro" on purpose
+        </p>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.59.2/lib/codemirror.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.59.2/keymap/vim.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.59.2/addon/mode/simple.js"></script>
+    <script type="module" src="static/main.js"></script>
+  </body>
 </html>
