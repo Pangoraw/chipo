@@ -26,6 +26,11 @@ pub fn get_display_buffer_emulator(emu: &Emulator, pixels: &mut [u8]) {
 }
 
 #[wasm_bindgen]
+pub fn decrement_registers_emulator(emu: &mut Emulator) {
+    emu.proc.decrement_registers();
+}
+
+#[wasm_bindgen]
 pub fn set_keydown_emulator(_emu: &Emulator, _key: char) {}
 
 #[wasm_bindgen]
