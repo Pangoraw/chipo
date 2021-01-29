@@ -69,7 +69,11 @@ main {
     font-family: 'Press Start 2P', courier;
 }
 
-@media (min-width: 640px) {
+@media (max-width: 640px) {
+		.lib {
+			flex-direction: column-reverse;
+		}
+
     main {
         max-width: 600px;
     }
