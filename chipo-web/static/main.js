@@ -4,6 +4,7 @@ import init, {
   cycle_emulator,
   get_display_buffer_emulator,
   decrement_registers_emulator,
+	should_buzz,
 } from "../pkg/chipo_web.js";
 
 function clearScreen() {
@@ -13,8 +14,18 @@ function clearScreen() {
 
 const SCALE = 5;
 const N_PIXELS = 64 * 32;
+let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function Emulator(code) {
   this.emu = new_emulator(code);
+	this._newOscillator = () => {
+		const oscillator = audioCtx.createOscillator();
+		oscillator.type = "square";
+		oscillator.frequency.value = 400;
+		oscillator.connect(audioCtx.destination);
+		return oscillator;
+	}
+	this._oscillator = this._newOscillator();
+
   this._isPlaying = true;
 
   this.cycle = function () {
@@ -25,10 +36,25 @@ function Emulator(code) {
   };
 
   this.isPlaying = () => this._isPlaying;
+	this.doBuzz = () => {
+		if (!this._audioRunning && should_buzz(this.emu)) {
+			this._oscillator.start();
+			this._audioRunning = true;
+		} else if (this._audioRunning && !should_buzz(this.emu)) {
+			this._oscillator.stop();
+			this._audioRunning = false;
+			this._oscillator = this._newOscillator();
+		}
+	}
 
   this.decrementRegisters = function () {
     decrement_registers_emulator(this.emu);
   };
+
+	this.destroy = () => {
+		if (this._audioRunning)
+			this._oscillator.stop();
+	}
 
   this.display = function () {
     const pixels = new Uint8Array(N_PIXELS);
@@ -99,6 +125,7 @@ const showError = (err) => {
 };
 
 const ctx = canvas.getContext("2d");
+let emu = null;
 async function run() {
   if (codeValue.length == 0) {
     codeValue = await fetch(
@@ -123,6 +150,7 @@ async function run() {
   initEvent("save", save);
   const stop = () => {
     running = false;
+		audioCtx.close();
     clearScreen();
   };
   initEvent("stop", stop);
@@ -149,8 +177,12 @@ async function run() {
     }
     hideError();
 
-    const emu = new Emulator(code_buffer);
+		if (emu !== null) {
+			emu.destroy();
+		}
+    emu = new Emulator(code_buffer);
     running = true;
+		audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
     function loop() {
       if (!emu.isPlaying() || !running) {
@@ -162,6 +194,7 @@ async function run() {
       }
       emu.decrementRegisters();
       emu.display();
+			emu.doBuzz();
 
       requestAnimationFrame(loop);
     }

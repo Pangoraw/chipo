@@ -31,6 +31,11 @@ pub fn decrement_registers_emulator(emu: &mut Emulator) {
 }
 
 #[wasm_bindgen]
+pub fn should_buzz(emu: &Emulator) -> bool {
+    emu.proc.should_buzz()    
+}
+
+#[wasm_bindgen]
 pub fn set_keydown_emulator(_emu: &Emulator, _key: char) {}
 
 #[wasm_bindgen]
