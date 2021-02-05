@@ -151,9 +151,26 @@ async function run() {
   const stop = () => {
     running = false;
 		audioCtx.close();
+		audioCtx = new(window.AudioContext || window.webkitAudioContext)();
     clearScreen();
   };
   initEvent("stop", stop);
+
+	document.addEventListener("keydown", function(event) {
+		const key = event.code.toLowerCase();
+
+		if (emu) {
+			emu.setKeyDown(key);
+		}
+	});
+	document.addEventListener("keyup", function(event) {
+		const key = event.code.toLowerCase();
+
+		if (emu) {
+			emu.setKeyUp(key);
+		}
+	});
+
 
   const roms = document.querySelector(".lib").children[1].children[0].children;
   for (let rom of roms) {
