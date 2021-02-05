@@ -5,6 +5,8 @@ import init, {
   get_display_buffer_emulator,
   decrement_registers_emulator,
 	should_buzz,
+	set_key_down_emulator,
+	set_key_up_emulator
 } from "../pkg/chipo_web.js";
 
 function clearScreen() {
@@ -16,6 +18,7 @@ const SCALE = 5;
 const N_PIXELS = 64 * 32;
 let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function Emulator(code) {
+	// this.emu is a reference to Rust Emulator struct. 
   this.emu = new_emulator(code);
 	this._newOscillator = () => {
 		const oscillator = audioCtx.createOscillator();
@@ -45,6 +48,14 @@ function Emulator(code) {
 			this._audioRunning = false;
 			this._oscillator = this._newOscillator();
 		}
+	}
+
+	this.setKeyUp = function(key) {
+		set_key_up_emulator(this.emu, key);
+	}
+
+	this.setKeyDown = function(key) {
+		set_key_down_emulator(this.emu, key);
 	}
 
   this.decrementRegisters = function () {

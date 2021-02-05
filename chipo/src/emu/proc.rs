@@ -289,23 +289,24 @@ impl Proc {
         }
     }
     fn get_key_index(&self, keycode: Keycode) -> Option<usize> {
+        // From http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#keyboard
         match keycode {
-            Keycode::Num1 => Some(0),
-            Keycode::Num2 => Some(1),
-            Keycode::Num3 => Some(2),
-            Keycode::Num4 => Some(3),
-            Keycode::A => Some(4),
-            Keycode::Z => Some(5),
+            Keycode::Num1 => Some(1),
+            Keycode::Num2 => Some(2),
+            Keycode::Num3 => Some(3),
+            Keycode::Num4 => Some(0xC),
+            Keycode::Q => Some(4),
+            Keycode::W => Some(5),
             Keycode::E => Some(6),
-            Keycode::R => Some(7),
-            Keycode::Q => Some(8),
-            Keycode::S => Some(9),
-            Keycode::D => Some(10),
-            Keycode::F => Some(11),
-            Keycode::W => Some(12),
-            Keycode::X => Some(13),
-            Keycode::C => Some(14),
-            Keycode::V => Some(15),
+            Keycode::R => Some(0xD),
+            Keycode::A => Some(7),
+            Keycode::S => Some(8),
+            Keycode::D => Some(9),
+            Keycode::F => Some(0xE),
+            Keycode::Z => Some(0xA),
+            Keycode::X => Some(0),
+            Keycode::C => Some(0xB),
+            Keycode::V => Some(0xF),
             _ => None,
         }
     }
