@@ -190,16 +190,14 @@ impl<'a> Parser<'a> {
         if let Some(location) = address {
             Ok(*location as u32)
         } else {
-            let parse_rel = if let Some(slice) = symbol.strip_prefix("0x") {
-                i32::from_str_radix(slice, 16)
+            if let Some(slice) = symbol.strip_prefix("0x") {
+                u32::from_str_radix(slice, 16)
             } else {
-                symbol.parse::<i32>()
-            };
-            if let Ok(offset) = parse_rel {
-                Ok((2 * offset + self.current_pointer as i32) as u32)
-            } else {
-                Err(LineError::InvalidAddress(symbol.to_string()))
+                symbol
+                    .parse::<i32>()
+                    .map(|offset| (2 * offset + self.current_pointer as i32) as u32)
             }
+            .map_err(|_| LineError::InvalidAddress(symbol.to_string()))
         }
     }
 
@@ -551,7 +549,7 @@ addr:
             r#"
 .code
 start:
-    jp 2
+    jp 0x204
     ret
     jp -1
             "#,
@@ -665,6 +663,8 @@ start:
         assert_eq!(parse_number("3"), expected);
         let expected: std::result::Result<u8, LineError> = Ok(0xF);
         assert_eq!(parse_number("0x0F"), expected);
+        let expected: std::result::Result<u16, LineError> = Ok(0xFFFF);
+        assert_eq!(parse_number("0xFFFF"), expected);
     }
 
     #[test]
