@@ -343,6 +343,10 @@ impl<'a> Parser<'a> {
                 assert_num_args(1, tokens.len())?;
                 Ok(KeyOpNeq(parse_register(tokens[0])?))
             }
+            "raw" => {
+                assert_num_args(1, tokens.len())?;
+                Ok(Raw(parse_number::<u16>(tokens[0])?))
+            }
             _ => Err(LineError::InstructionErr(instruction.to_string())),
         };
 
