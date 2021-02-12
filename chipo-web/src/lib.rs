@@ -1,8 +1,8 @@
 use wasm_bindgen::prelude::*;
 
-use chipo::compile as chipo_compile;
 use chipo::emu::{Keycode, Proc};
 use chipo::error::ChipoError;
+use chipo::{compile as chipo_compile, reverse_parse as chipo_reverse_parse};
 
 // An Emulator is a wrapper for a Proc
 // It can be accessed the functions _emulator(emu: &Emulator)
@@ -77,6 +77,11 @@ pub fn new_emulator(code: &[u8]) -> Emulator {
     Emulator {
         proc: Proc::binary(code).unwrap(),
     }
+}
+
+#[wasm_bindgen]
+pub fn reverse_parse(code: &[u8]) -> Result<String, JsValue> {
+    chipo_reverse_parse(code).map_err(convert_err)
 }
 
 fn convert_err(err: ChipoError) -> JsValue {

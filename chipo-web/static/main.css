@@ -1,86 +1,101 @@
 body {
-    padding: 0;
-    margin: 0;
-    background-color: #444;
-    color: #aca;
+  padding: 0;
+  margin: 0;
+  background-color: #444;
+  color: #aca;
 }
 
 h1 {
-    font-size: 1.5rem;    
+  font-size: 1.5rem;
 }
 
 .sep {
-    overflow:hidden;
+  overflow: hidden;
+}
+
+.upload {
+  display: flex;
+	flex-direction: column;
+	margin-bottom: 10px;
+}
+
+.upload input {
+	border: 1px solid;
+  font-family: "Press Start 2P", courier !important;
+	margin-top: 10px;
+	margin-bottom: 10px;
+	padding: 10px;
+	overflow: scroll;
 }
 
 .clickable {
-    cursor: pointer;
-    color: #07a207;
+  cursor: pointer;
+  color: #07a207;
 }
 
 .clickable:hover {
-    color: #0bf20b;
+  color: #0bf20b;
 }
 
 ul {
-    list-style: none;
+  list-style: none;
 }
 
 li::before {
-    content: "*";
-    padding-right: 5px;
+  content: "*";
+  padding-right: 5px;
 }
 
 .error {
-    color: #F04;
-    display: none;
+  color: #f04;
+  display: none;
 }
 
 .lib {
-    display: flex;
-    padding-bottom: 10px;
+  display: flex;
+  padding-bottom: 10px;
 }
 
 .lib div {
-    margin-left: 10px;
+  margin-left: 10px;
 }
 
 .desc {
-    text-align: justify;
-    text-justify: inter-word;
+  text-align: justify;
+  text-justify: inter-word;
 }
 
 .CodeMirror {
-    font-size: 0.8rem !important;
-    font-family: 'Press Start 2P', courier !important;
-    min-height: 500px !important;
+  font-size: 0.8rem !important;
+  font-family: "Press Start 2P", courier !important;
+  min-height: 500px !important;
 }
 
 div.container {
-    margin-left: 20px;
-    margin-right: 20px;
+  margin-left: 20px;
+  margin-right: 20px;
 }
 
 main {
-    position: relative;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    font-family: 'Press Start 2P', courier;
+  position: relative;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: "Press Start 2P", courier;
 }
 
 @media (max-width: 640px) {
-		.lib {
-			flex-direction: column-reverse;
-		}
+  .lib {
+    flex-direction: column-reverse;
+  }
 
-    main {
-        max-width: 600px;
-    }
+  main {
+    max-width: 600px;
+  }
 }
 
 @media (min-width: 1024px) {
-    main {
-        max-width: 600px;
-    }
+  main {
+    max-width: 600px;
+  }
 }

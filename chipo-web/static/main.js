@@ -6,7 +6,8 @@ import init, {
   decrement_registers_emulator,
 	should_buzz,
 	set_key_down_emulator,
-	set_key_up_emulator
+	set_key_up_emulator,
+	reverse_parse,
 } from "../pkg/chipo_web.js";
 
 function clearScreen() {
@@ -14,6 +15,7 @@ function clearScreen() {
   ctx.fillRect(0, 0, 64 * SCALE, 32 * SCALE);
 }
 
+const MAX_SIZE = 2048;
 const SCALE = 5;
 const N_PIXELS = 64 * 32;
 let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -134,6 +136,8 @@ const showError = (err) => {
   errorSection.style.display = "block";
   errorSection.innerText = `error: ${err}`;
 };
+const fileUploader = document.getElementById("c8file");
+window.fileUploader = fileUploader;
 
 const ctx = canvas.getContext("2d");
 let emu = null;
@@ -182,8 +186,7 @@ async function run() {
 		}
 	});
 
-
-  const roms = document.querySelector(".lib").children[1].children[0].children;
+  const roms = document.querySelector(".roms").children;
   for (let rom of roms) {
     rom.addEventListener("click", async () => {
       const url = rom.dataset.src;
@@ -195,10 +198,11 @@ async function run() {
   await init();
 
   const startEmu = () => {
-    const code_buffer = new Uint8Array(100);
+    let code_buffer = new Uint8Array(MAX_SIZE);
     const text = codeMirror.getValue();
     try {
-      compile(text, code_buffer);
+      let length = compile(text, code_buffer);
+			code_buffer = code_buffer.slice(0, length);
     } catch (err) {
       showError(err);
       return;
@@ -236,6 +240,30 @@ async function run() {
     startEmu();
   };
 
+	document.querySelector(".download").addEventListener("click", async () => {
+		let data = new Uint8Array(MAX_SIZE);
+		const length = compile(codeMirror.getValue(), data);
+		data = data.slice(0, length);
+		const file = new Blob([data]);
+		const url = URL.createObjectURL(file),
+					a = document.createElement("a");
+		a.href = url;
+		a.download = "program.c8";
+
+		document.body.appendChild(a);
+		a.click();
+		setTimeout(function() {
+			document.body.removeChild(a);
+			window.URL.revokeObjectURL(url);
+		});
+	});
+	document.querySelector(".load").addEventListener("click", async () => {
+		if (!fileUploader.files.length) showError("no file uploaded")
+
+		const fileContent = await fileUploader.files[0].arrayBuffer();
+		const result = reverse_parse(new Uint8Array(fileContent));
+		codeMirror.setValue(result);
+	});
   initEvent("run", runAgain);
   codeMirror.on("change", () => {
     if (autoSave) {
